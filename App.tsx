@@ -1,27 +1,17 @@
-import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 const App = () => {
-  // Inject JavaScript to fix CORS issues and properly load the scene
-  const injectedJavaScript = `
-    window.onerror = function(message, source, lineno, colno, error) {
-      console.log('Error:', message, 'Source:', source, 'Line:', lineno);
-      return true;
-    };
-    console.log = function(...args) { window.ReactNativeWebView.postMessage('Log: ' + args.join(' ')); };
-    console.error = function(...args) { window.ReactNativeWebView.postMessage('Error: ' + args.join(' ')); };
-    true;
-  `;
+  const [loading, setLoading] = useState(true);
 
-  // Enhanced HTML content with better error handling
+  // Use iframe embed approach which is more reliable
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <script type="module" src="https://unpkg.com/@splinetool/viewer@0.9.369/build/spline-viewer.js"></script>
       <style>
         body, html {
           margin: 0;
@@ -29,78 +19,43 @@ const App = () => {
           height: 100%;
           width: 100%;
           overflow: hidden;
-          background-color: #f0f0f0;
         }
-        spline-viewer {
+        iframe {
           width: 100%;
           height: 100%;
-          display: block;
-        }
-        #loading {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-family: Arial, sans-serif;
+          border: none;
         }
       </style>
     </head>
     <body>
-      <div id="loading">Loading 3D scene...</div>
-      <spline-viewer 
-        url="https://prod.spline.design/hSqP-2vR9idXIQJF/scene.splinecode"
-        events-target="global"
-        loading-anim
-        style="width: 100%; height: 100%"
-      ></spline-viewer>
-      <script>
-        // Add event listeners to detect loading status
-        document.addEventListener('DOMContentLoaded', function() {
-          const viewer = document.querySelector('spline-viewer');
-          const loading = document.getElementById('loading');
-          
-          if (viewer) {
-            viewer.addEventListener('error', function(e) {
-              console.error('Spline viewer error:', e.detail);
-              loading.textContent = 'Error loading 3D scene';
-            });
-            
-            viewer.addEventListener('load', function() {
-              console.log('Spline scene loaded successfully');
-              loading.style.display = 'none';
-            });
-          }
-        });
-      </script>
+      <iframe 
+        src='https://my.spline.design/voiceinteractionanimation-52f52f4e3462df85e192efc60e3c2201/' 
+        frameborder='0' 
+        width='100%' 
+        height='100%'
+        onload="window.ReactNativeWebView.postMessage('loaded')"
+      ></iframe>
     </body>
     </html>
   `;
 
-  // Log WebView console messages for debugging
-  const onMessage = (event) => {
-    console.log("WebView message:", event.nativeEvent.data);
-  };
-
   return (
     <View style={styles.container}>
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
+      )}
       <WebView
         originWhitelist={['*']}
         source={{ html: htmlContent }}
         style={styles.webview}
         javaScriptEnabled={true}
         domStorageEnabled={true}
-        allowFileAccess={true}
-        allowUniversalAccessFromFileURLs={true}
-        mixedContentMode="always"
-        onMessage={onMessage}
-        injectedJavaScript={injectedJavaScript}
-        onError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView error:', nativeEvent);
-        }}
-        onHttpError={(syntheticEvent) => {
-          const { nativeEvent } = syntheticEvent;
-          console.error('WebView HTTP error:', nativeEvent);
+        onMessage={(event) => {
+          if (event.nativeEvent.data === 'loaded') {
+            setLoading(false);
+          }
         }}
       />
     </View>
@@ -116,6 +71,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent'
   },
+  loadingContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1
+  }
 });
 
 export default App;
